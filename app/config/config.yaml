@@ -1,0 +1,33 @@
+fft:
+  window_type: "hann"
+  nperseg: 1024
+  noverlap: 512
+  detrend: "constant"
+  scaling: "density"
+
+modal_identification:
+  peak_prominence: 0.05
+  peak_distance: 5
+  min_frequency: 0.5
+  max_frequency: 500.0
+  damping_fit_points: 10
+  max_modes: 20
+  curve_fit_method: "lm"
+  half_power_bandwidth: true
+
+ingestion:
+  max_segment_size: 10485760
+  binary_dtype: "float32"
+  byte_order: "little"
+  sample_rate_default: 1024.0
+  retry_count: 3
+  retry_delay_seconds: 1
+
+query:
+  max_points_per_query: 1000000
+  default_time_range_hours: 24
+
+logging:
+  retention_days: 30
+  stack_trace_limit: 10
+  failed_waveform_dir: "./data/failed_waveforms"
