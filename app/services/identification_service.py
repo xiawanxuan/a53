@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import uuid
 import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +34,62 @@ class ModalIdentificationService:
         self.fft_analyzer = FFTAnalyzer()
         self.modal_identifier = ModalIdentifier()
 
+    @staticmethod
+    def _align_waveform_by_sample_index(
+        sample_indices: List[int],
+        amplitudes: List[float],
+        min_segment_length: int = 16,
+    ) -> np.ndarray:
+        if not sample_indices or not amplitudes:
+            return np.array([], dtype=np.float64)
+
+        indices = np.array(sample_indices, dtype=np.int64)
+        amps = np.array(amplitudes, dtype=np.float64)
+
+        sort_order = np.argsort(indices)
+        indices = indices[sort_order]
+        amps = amps[sort_order]
+
+        _, unique_idx = np.unique(indices, return_index=True)
+        indices = indices[unique_idx]
+        amps = amps[unique_idx]
+
+        n = len(indices)
+        if n < min_segment_length:
+            return amps
+
+        diffs = np.diff(indices)
+        breaks = np.where(diffs != 1)[0]
+
+        if len(breaks) == 0:
+            base_idx = indices[0]
+            seg_size = indices[-1] - base_idx + 1
+            aligned = np.zeros(seg_size, dtype=np.float64)
+            aligned[indices - base_idx] = amps
+            return aligned
+
+        seg_starts = np.concatenate([[0], breaks + 1])
+        seg_ends = np.concatenate([breaks + 1, [n]])
+        seg_lengths = seg_ends - seg_starts
+
+        best_seg_idx = np.argmax(seg_lengths)
+        best_len = seg_lengths[best_seg_idx]
+        best_start = seg_starts[best_seg_idx]
+        best_end = seg_ends[best_seg_idx]
+
+        if best_len < min_segment_length:
+            best_start = 0
+            best_end = n
+
+        seg_indices = indices[best_start:best_end]
+        seg_amps = amps[best_start:best_end]
+        base_idx = seg_indices[0]
+        seg_size = seg_indices[-1] - base_idx + 1
+        aligned = np.zeros(seg_size, dtype=np.float64)
+        aligned[seg_indices - base_idx] = seg_amps
+
+        return aligned
+
     async def identify_modal(
         self,
         ship_code: str,
@@ -61,12 +117,17 @@ class ModalIdentificationService:
         task_id = task.id
 
         try:
-            waveform = await self.waveform_repo.query_waveforms_numpy(
+            timestamps, amplitudes, sample_indices = await self.waveform_repo.query_waveforms(
                 ship_id=ship.id,
                 point_id=point.id,
                 start_time=start_time,
                 end_time=end_time,
             )
+
+            if not amplitudes or len(amplitudes) < 16:
+                raise AnalysisException(ErrorCode.WAVEFORM_TOO_SHORT, "可用波形数据不足")
+
+            waveform = self._align_waveform_by_sample_index(sample_indices, amplitudes)
 
             if waveform is None or waveform.size < 16:
                 raise AnalysisException(ErrorCode.WAVEFORM_TOO_SHORT, "可用波形数据不足")

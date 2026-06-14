@@ -149,7 +149,7 @@ class WaveformRepository:
                     VibrationWaveform.time <= end_time,
                 )
             )
-            .order_by(VibrationWaveform.time)
+            .order_by(VibrationWaveform.sample_index, VibrationWaveform.time)
             .limit(max_points)
         )
 
@@ -158,7 +158,8 @@ class WaveformRepository:
 
         timestamps = [row.time for row in rows]
         amplitudes = [row.amplitude for row in rows]
-        return timestamps, amplitudes
+        sample_indices = [row.sample_index for row in rows]
+        return timestamps, amplitudes, sample_indices
 
     async def query_waveforms_numpy(
         self,
@@ -168,7 +169,7 @@ class WaveformRepository:
         end_time: datetime,
         max_points: int = None,
     ) -> Optional[np.ndarray]:
-        timestamps, amplitudes = await self.query_waveforms(
+        timestamps, amplitudes, sample_indices = await self.query_waveforms(
             ship_id, point_id, start_time, end_time, max_points
         )
         if not amplitudes:

@@ -83,7 +83,7 @@ class QueryService:
 
         sample_rate = float(point.sample_rate) if point.sample_rate else 1024.0
 
-        timestamps, amplitudes = await self.waveform_repo.query_waveforms(
+        timestamps, amplitudes, sample_indices = await self.waveform_repo.query_waveforms(
             ship_id=ship.id,
             point_id=point.id,
             start_time=start_time,
