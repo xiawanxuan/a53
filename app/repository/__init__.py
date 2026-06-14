@@ -8,6 +8,7 @@ from .analysis_repository import (
     TaskRepository,
     ModalResultRepository,
     FFTSpectrumRepository,
+    AlertCallbackRepository,
 )
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "TaskRepository",
     "ModalResultRepository",
     "FFTSpectrumRepository",
+    "AlertCallbackRepository",
 ]

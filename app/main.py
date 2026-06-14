@@ -12,6 +12,7 @@ from .routers import (
     analysis_router,
     query_router,
     system_router,
+    alert_router,
 )
 from .logging_config.logger import setup_logger
 
@@ -30,10 +31,11 @@ app = FastAPI(
 - **多维度查询**: 按船舶编号、测点、航行时间段查询原始波形与模态结果
 - **异常留存**: 辨识失败时自动保存原始波形用于复现调试
 - **统一错误码**: 所有接口返回标准化响应格式
+- **告警回调推送**: 识别到危险共振模态时自动回调推送至第三方运维系统
 
 ## 数据存储
 - **TimescaleDB**: 振动波形时序数据
-- **MySQL**: 船舶、测点台账与辨识任务/结果
+- **MySQL**: 船舶、测点台账与辨识任务/结果/回调记录
     """,
     version="1.0.0",
     contact={"name": "船舶运维平台团队"},
@@ -55,6 +57,7 @@ app.include_router(ingestion_router)
 app.include_router(analysis_router)
 app.include_router(query_router)
 app.include_router(system_router)
+app.include_router(alert_router)
 
 
 @app.get("/", tags=["根路径"])

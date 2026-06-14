@@ -1,4 +1,4 @@
-from .mysql_models import Ship, MeasuringPoint, IdentificationTask, ModalResult, FFTSpectrum
+from .mysql_models import Ship, MeasuringPoint, IdentificationTask, ModalResult, FFTSpectrum, AlertCallbackRecord
 from .timescale_models import VibrationWaveform, WaveformUploadSession
 from .schemas import (
     ShipCreate,
@@ -15,6 +15,8 @@ from .schemas import (
     WaveformQueryRequest,
     WaveformQueryResponse,
     ModalQueryRequest,
+    AlertCallbackRecordResponse,
+    AlertCallbackQueryRequest,
 )
 
 __all__ = [

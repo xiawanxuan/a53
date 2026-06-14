@@ -120,3 +120,31 @@ class FFTSpectrum(BaseMySQL):
     __table_args__ = (
         Index("idx_task_id_spectrum", "task_id"),
     )
+
+
+class AlertCallbackRecord(BaseMySQL):
+    __tablename__ = "alert_callback_records"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    task_id = Column(BigInteger, ForeignKey("identification_tasks.id", ondelete="CASCADE"), nullable=False)
+    ship_id = Column(BigInteger, nullable=False)
+    point_id = Column(BigInteger, nullable=False)
+    callback_uuid = Column(String(64), nullable=False, unique=True)
+    webhook_url = Column(String(512), nullable=False)
+    status = Column(SmallInteger, default=0, comment="0-待推送 1-成功 2-失败")
+    retry_count = Column(Integer, default=0)
+    max_retries = Column(Integer, default=3)
+    response_status = Column(Integer, comment="HTTP响应状态码")
+    response_body = Column(Text, comment="HTTP响应体")
+    error_message = Column(Text, comment="错误信息")
+    dangerous_modes = Column(Text, comment="危险模态参数JSON")
+    pushed_at = Column(DateTime, comment="推送时间")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_task_id_callback", "task_id"),
+        Index("idx_ship_point_callback", "ship_id", "point_id", "created_at"),
+        Index("idx_status_callback", "status"),
+        Index("idx_callback_uuid", "callback_uuid"),
+    )

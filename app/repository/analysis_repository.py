@@ -163,3 +163,105 @@ class FFTSpectrumRepository:
         frequencies = [float(r.frequency) for r in rows]
         amplitudes = [float(r.amplitude) for r in rows]
         return frequencies, amplitudes
+
+
+class AlertCallbackRepository:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def create_record(
+        self,
+        task_id: int,
+        ship_id: int,
+        point_id: int,
+        callback_uuid: str,
+        webhook_url: str,
+        dangerous_modes_json: str,
+        max_retries: int = 3,
+    ):
+        from ..models import AlertCallbackRecord
+        record = AlertCallbackRecord(
+            task_id=task_id,
+            ship_id=ship_id,
+            point_id=point_id,
+            callback_uuid=callback_uuid,
+            webhook_url=webhook_url,
+            status=0,
+            retry_count=0,
+            max_retries=max_retries,
+            dangerous_modes=dangerous_modes_json,
+        )
+        self.db.add(record)
+        await self.db.flush()
+        return record
+
+    async def update_record(
+        self,
+        callback_uuid: str,
+        status: int = None,
+        retry_count: int = None,
+        response_status: int = None,
+        response_body: str = None,
+        error_message: str = None,
+        pushed_at: datetime = None,
+    ):
+        from ..models import AlertCallbackRecord
+        result = await self.db.execute(
+            select(AlertCallbackRecord).where(AlertCallbackRecord.callback_uuid == callback_uuid)
+        )
+        record = result.scalar_one_or_none()
+        if not record:
+            return None
+        if status is not None:
+            record.status = status
+        if retry_count is not None:
+            record.retry_count = retry_count
+        if response_status is not None:
+            record.response_status = response_status
+        if response_body is not None:
+            record.response_body = response_body
+        if error_message is not None:
+            record.error_message = error_message
+        if pushed_at is not None:
+            record.pushed_at = pushed_at
+        await self.db.flush()
+        return record
+
+    async def get_by_uuid(self, callback_uuid: str):
+        from ..models import AlertCallbackRecord
+        result = await self.db.execute(
+            select(AlertCallbackRecord).where(AlertCallbackRecord.callback_uuid == callback_uuid)
+        )
+        return result.scalar_one_or_none()
+
+    async def list_records(
+        self,
+        ship_id: int = None,
+        point_id: int = None,
+        task_id: int = None,
+        status: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        limit: int = 100,
+    ) -> list:
+        from ..models import AlertCallbackRecord
+        from sqlalchemy import and_
+        query = select(AlertCallbackRecord)
+        conditions = []
+        if ship_id:
+            conditions.append(AlertCallbackRecord.ship_id == ship_id)
+        if point_id:
+            conditions.append(AlertCallbackRecord.point_id == point_id)
+        if task_id:
+            conditions.append(AlertCallbackRecord.task_id == task_id)
+        if status is not None:
+            conditions.append(AlertCallbackRecord.status == status)
+        if start_time:
+            conditions.append(AlertCallbackRecord.created_at >= start_time)
+        if end_time:
+            conditions.append(AlertCallbackRecord.created_at <= end_time)
+        if conditions:
+            query = query.where(and_(*conditions))
+        query = query.order_by(AlertCallbackRecord.created_at.desc()).limit(limit)
+        result = await self.db.execute(query)
+        return list(result.scalars().all())

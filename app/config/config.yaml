@@ -31,3 +31,18 @@ logging:
   retention_days: 30
   stack_trace_limit: 10
   failed_waveform_dir: "./data/failed_waveforms"
+
+alert_callback:
+  enabled: true
+  webhook_url: "http://third-party-ops.example.com/api/v1/modal-alerts"
+  auth_header: "X-API-Key"
+  auth_token: ""
+  timeout_seconds: 10
+  retry_count: 3
+  retry_delay_seconds: 2
+  danger_frequency_min: 10.0
+  danger_frequency_max: 100.0
+  danger_amplitude_threshold: 50.0
+  danger_damping_max: 0.02
+  danger_confidence_min: 0.7
+  concurrent_push: false

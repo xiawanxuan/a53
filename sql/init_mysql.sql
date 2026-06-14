@@ -87,3 +87,27 @@ CREATE TABLE IF NOT EXISTS fft_spectra (
     INDEX idx_task_id (task_id),
     FOREIGN KEY (task_id) REFERENCES identification_tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='FFT频谱结果表';
+
+CREATE TABLE IF NOT EXISTS alert_callback_records (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_id BIGINT NOT NULL COMMENT '辨识任务ID',
+    ship_id BIGINT NOT NULL COMMENT '船舶ID',
+    point_id BIGINT NOT NULL COMMENT '测点ID',
+    callback_uuid VARCHAR(64) NOT NULL UNIQUE COMMENT '回调记录唯一标识',
+    webhook_url VARCHAR(512) NOT NULL COMMENT '推送地址',
+    status TINYINT DEFAULT 0 COMMENT '状态：0-待推送 1-成功 2-失败',
+    retry_count INT DEFAULT 0 COMMENT '已重试次数',
+    max_retries INT DEFAULT 3 COMMENT '最大重试次数',
+    response_status INT COMMENT 'HTTP响应状态码',
+    response_body TEXT COMMENT 'HTTP响应体',
+    error_message TEXT COMMENT '错误信息',
+    dangerous_modes TEXT COMMENT '危险模态参数JSON',
+    pushed_at DATETIME COMMENT '推送时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_task_id_callback (task_id),
+    INDEX idx_ship_point_callback (ship_id, point_id, created_at),
+    INDEX idx_status_callback (status),
+    INDEX idx_callback_uuid (callback_uuid),
+    FOREIGN KEY (task_id) REFERENCES identification_tasks(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模态告警回调推送记录表';

@@ -145,3 +145,32 @@ class ModalQueryRequest(BaseModel):
     start_time: Optional[datetime] = Field(None, description="起始时间")
     end_time: Optional[datetime] = Field(None, description="结束时间")
     task_uuid: Optional[str] = Field(None, max_length=64, description="任务UUID")
+
+
+class AlertCallbackRecordResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    task_id: int
+    ship_id: int
+    point_id: int
+    callback_uuid: str
+    webhook_url: str
+    status: int
+    retry_count: int
+    max_retries: int
+    response_status: Optional[int] = None
+    response_body: Optional[str] = None
+    error_message: Optional[str] = None
+    dangerous_modes: Optional[str] = None
+    pushed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AlertCallbackQueryRequest(BaseModel):
+    ship_code: Optional[str] = Field(None, max_length=64, description="船舶编号")
+    point_code: Optional[str] = Field(None, max_length=64, description="测点编号")
+    task_uuid: Optional[str] = Field(None, max_length=64, description="任务UUID")
+    status: Optional[int] = Field(None, description="推送状态")
+    start_time: Optional[datetime] = Field(None, description="起始时间")
+    end_time: Optional[datetime] = Field(None, description="结束时间")

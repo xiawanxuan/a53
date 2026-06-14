@@ -18,6 +18,7 @@ from ..repository import (
 )
 from .fft_analyzer import FFTAnalyzer
 from .modal_identifier import ModalIdentifier
+from .alert_callback_service import AlertCallbackService
 from ..middleware.exceptions import BusinessException, AnalysisException
 from ..middleware.error_codes import ErrorCode
 from ..logging_config.logger import logger, save_failed_waveform
@@ -33,6 +34,7 @@ class ModalIdentificationService:
         self.fft_repo = FFTSpectrumRepository(mysql_db)
         self.fft_analyzer = FFTAnalyzer()
         self.modal_identifier = ModalIdentifier()
+        self.alert_service = AlertCallbackService(mysql_db)
 
     @staticmethod
     def _align_waveform_by_sample_index(
@@ -158,6 +160,36 @@ class ModalIdentificationService:
 
             await self.task_repo.update_status(task_uuid, status=2)
             await self.mysql_db.commit()
+
+            if self.alert_service.is_enabled():
+                ship_info = {
+                    "ship_name": ship.ship_name,
+                    "ship_type": ship.ship_type,
+                } if ship else None
+                point_info = {
+                    "point_name": point.point_name,
+                    "location_desc": point.location_desc,
+                    "direction": point.direction,
+                } if point else None
+                try:
+                    await self.alert_service.push_alert(
+                        ship_code=ship_code,
+                        point_code=point_code,
+                        ship_id=ship.id,
+                        point_id=point.id,
+                        task_id=task_id,
+                        task_uuid=task_uuid,
+                        start_time=start_time,
+                        end_time=end_time,
+                        sample_rate=sample_rate,
+                        modal_params=modal_params,
+                        ship_info=ship_info,
+                        point_info=point_info,
+                    )
+                except Exception as alert_err:
+                    logger.error(
+                        f"Alert callback failed silently: {alert_err}", exc_info=True
+                    )
 
             modal_params_objs = [
                 ModalParameter(**mp) for mp in modal_params
